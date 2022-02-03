@@ -74,8 +74,6 @@ class MyNode:
         self.fullScreenState = False
         self.root.attributes("-fullscreen", self.fullScreenState)
 
-
-
 rospy.init_node('my_test',anonymous=True)
 root = tk.Tk()
 mynode = MyNode(root)
