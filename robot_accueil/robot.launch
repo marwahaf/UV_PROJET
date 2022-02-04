@@ -11,11 +11,11 @@
 
     <include file="$(find larm)/launch/challenge-1.launch"/>
 
-   
-    <node pkg="challenge3" type="vision1_cam3d_wiz_haar_bottle.py" name="bottle_detection" output="screen" />
+
+    <!-- <node pkg="challenge3" type="vision1_cam3d_wiz_haar_bottle.py" name="bottle_detection" output="screen" /> -->
 
  
-    <node pkg="challenge3" type="move_to_goal.py" name="go_to_goal" output="screen" />
+    <node pkg="robot_accueil" type="get_to_goal.py" name="go_to_goal" output="screen" />
     <!--node pkg="challenge3" type="transform.py" name="tfprobot" output="screen" /-->
 
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" args="scan">
@@ -26,7 +26,7 @@
 
     <group if="$(arg rviz)">
             <!-- stuff that will only be evaluated if foo is true -->
-            <node pkg="rviz" type="rviz" name="rviz" args="-d $(find grp-poire)/rviz/config_bag.rviz" />
+            <node pkg="rviz" type="rviz" name="rviz" args="-d $(fpoireind grp-)/rviz/config_bag.rviz" />
             </group>
     <param name="rviz" value="false" unless="$(arg rviz)" /> <!-- This param won't be set when "unless" condition is met -->
 
