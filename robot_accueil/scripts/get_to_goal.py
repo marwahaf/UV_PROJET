@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from pickle import FALSE
 import rospy , tf , tf.transformations , math , numpy
 from geometry_msgs.msg import PoseStamped , Twist
 import cv2 as cv 
@@ -17,11 +16,12 @@ class Move_to:
         self.commands = Twist()
         self.point_2D = PointCloud2() 
         self.tfListener = tf.TransformListener()
-        self.local_goal= PoseStamped()
-        self.robot_move_to_goal =  FALSE
+        self.goal= PoseStamped()
+        self.goal.header.frame_id = '/map'
+        self.robot_move_to_goal =  False
         rospy.Subscriber('scan', LaserScan, self.callback_laser)
         self.goal_listener = rospy.Subscriber('/move_base_simple/goal' , PoseStamped, self.callback_goal )
-        rospy.Subscriber("odom", Odometry , self.go_goal)
+        rospy.Subscriber("odom", Odometry , self.robot_position)
         self.pose_robot = PoseStamped()
         self.map_point = PoseStamped()
         self.command_pub = rospy.Publisher(
@@ -29,55 +29,6 @@ class Move_to:
             Twist, queue_size=10)
         rospy.Timer(rospy.Duration(0.1),self.move_robot, oneshot = False)
     
-    def callback_goal(self,data):
-        #self.local_goal est published dans la map
-        self.robot_move_to_goal=True
-        self.local_goal = data
-        return self.local_goal
- 
-    def go_goal(self ,data):
-        self.pose_robot.pose.position.x = data.pose.pose.position.x
-        self.pose_robot.pose.position.y = data.pose.pose.position.y
-        self.pose_robot.pose.position.z = data.pose.pose.position.z
-        self.pose_robot.pose.orientation.x = data.pose.pose.orientation.x
-        self.pose_robot.pose.orientation.y = data.pose.pose.orientation.y
-        self.pose_robot.pose.orientation.z = data.pose.pose.orientation.z
-        self.pose_robot.pose.orientation.w = data.pose.pose.orientation.w
-        #print(data)
-        self.pose_robot.header.frame_id = "odom"
-        self.map_point = self.tfListener.transformPose('/map', self.pose_robot)
-        
-        '''(self.pos, self.rot ) = self.tfListener.lookupTransform('/odom', '/map', rospy.Time(0))
-        print(self.pos, self.rot)
-        distance =  abs(math.sqrt(((self.local_goal.pose.position.x -self.pos[0])**2)+(self.local_goal.pose.position.y-self.pos[1])**2))
-        angle =  math.atan2(self.local_goal.pose.position.y - self.pos[1], self.local_goal.pose.position.x - self.pos[0])      
-        #print( distance , angle , abs((angle-self.rot[2])))
-        '''
-    
-    def move_robot(self ,data ):
-        distance =  abs(math.sqrt(((self.local_goal.pose.position.x -self.map_point.pose.position.x)**2)+(self.local_goal.pose.position.y-self.map_point.pose.position.y)**2))
-        angle =  math.atan2(self.local_goal.pose.position.y - self.map_point.pose.position.y , self.local_goal.pose.position.x - self.map_point.pose.position.x)         
-        '''if abs(angle) > 0.9 and self.robot_move_to_goal == True : 
-            self.commands.angular.z = abs((angle-self.map_point.pose.orientation.z)) * 0.01
-            if distance > 0.01 :
-                if  angle > 0 : 
-                    self.commands.linear.x =  distance * 0.5    
-                else :
-                    self.commands.linear.x =  - distance * 0.5    
-            #self.command_pub.publish(self.commands)
-            else :
-               self.robot_move_to_goal = False
-               self.commands.linear.x =  0.0
-               self.commands.linear.y =  0.0
-               self.commands.linear.z =  0.0
-               self.commands.angular.x =  0.0
-               self.commands.angular.y =  0.0
-               self.commands.angular.z =  0.0
-            '''
-        self.commands.linear.x =  distance * 0.5    
-        self.commands.angular.z = abs((angle-self.map_point.pose.orientation.z)) * 0.01  
-        self.move_command(self.commands)
-
     def callback_laser(self,data) : 
         laserData = data
         nb_values = len(laserData.ranges)
@@ -103,7 +54,6 @@ class Move_to:
                 #if the point is really close, speed up and reverse
                 if(point[0] < 0.2):
                     self.commands.linear.x = - 2 * TURN_SPEED_MPS
-
                 else : 
                     self.commands.linear.x = TURN_SPEED_MPS 
                 #if there is more room on the right side, go right
@@ -117,6 +67,48 @@ class Move_to:
             else :
                 self.commands.linear.x = FORWARD_SPEED_MPS
                 self.commands.angular.z = 0.0
+
+
+    def callback_goal(self,data):
+        self.robot_move_to_goal=True
+        data.header.stamp = rospy.Time(0)
+        self.goal = self.tfListener.transformPose('/map', data )
+        return self.goal
+ 
+    def robot_position(self ,data):
+        self.pose_robot.pose = data.pose.pose
+        self.pose_robot.header.frame_id = data.header.frame_id
+        #self.map_point = self.tfListener.transformPose('/map', self.pose_robotn )
+        
+    
+    def move_robot(self , data ):
+        self.tfListener.waitForTransform("/map", "/base_footprint", rospy.Time.now(), rospy.Duration(0.1))
+        #self.pose_robot.header.stamp =  rospy.Time(0)
+        #self.goal.header.stamp = rospy.Time(0)
+        self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot )
+        local_goal = self.tfListener.transformPose('/base_footprint', self.goal)
+        if self.robot_move_to_goal :
+            distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
+            angle =  abs(math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x))         
+            if angle > 0.3 : 
+                self.commands.angular.z = angle
+                if distance > 0.1 :  
+                #self.commands.angular.z = angle
+                    self.commands.linear.x =  distance * 0.05    
+                else : 
+                    self.commands.linear.x =  0.0
+                    # self.commands.linear.y =  0.0
+                    # self.commands.linear.z =  0.0
+                    # self.commands.angular.x =  0.0
+                    # self.commands.angular.y =  0.0
+            else : 
+                self.robot_move_to_goal = False
+                self.commands.angular.z =  0.0
+                # self.commands.linear.x =  distance * 0.5    
+                # self.commands.angular.z = abs((angle-self.map_point.pose.orientation.z)) * 0.01  
+            print(distance , angle,self.commands.linear.x , self.commands.angular.z )
+            self.move_command(self.commands)
+
 
     def move_command(self, data):
         self.command_pub.publish(data)
