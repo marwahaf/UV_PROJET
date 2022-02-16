@@ -4,7 +4,9 @@ import math
 from cv_bridge import CvBridge,CvBridgeError
 import rospy, rospkg
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Vector3, Pose,Quaternion, Point
+from visualization_msgs.msg import Marker
+from std_msgs.msg import ColorRGBA
 from consts import *
 
 #Get the path of the "Robot_accueil" package.
@@ -32,7 +34,7 @@ class Vision:
             self.timer = rospy.Timer( rospy.Duration(seconds), self.analyse)
         # Publisher:
         self.publisher = rospy.Publisher("analyzed/image_raw",Image, queue_size=10)
-        self.person = rospy.Publisher("object",Point,queue_size=1)
+        self.person = rospy.Publisher("object",Marker,queue_size=1)
 
     def callback(self, ros_image):
         self.cv_image= None
@@ -53,7 +55,7 @@ class Vision:
         #print("DBG : Shape" +str(f.shape))
         return math.radians(-ang) #-ang is for the Y values
     def analyse(self, data):
-        if self.cv_image is not None :
+        if self.cv_image is not None and self.depths is not None :
             self.cvAnalyser.analyse()
             try:
                 img,coords = self.cvAnalyser.result()
@@ -64,7 +66,14 @@ class Vision:
                 d = (self.depths[coords[1]][coords[0]]/1000) * math.cos(theta)
                 x = d * math.cos(xangle)
                 y = d * math.sin(xangle)
-                self.person.publish(Point(x,y,0))
+                person = Marker(
+                    type = Marker.CYLINDER,
+                    lifetime = rospy.Duration(0),
+                    scale=Vector3(0.1, 0.1, 0.1),
+                    color=ColorRGBA(0.0, 1.0, 0.0, 0.8),
+                    pose = Pose(Point(x,y,0),Quaternion())
+                    )
+                self.person.publish(person)
             except CvBridgeError as e:
                 print(e)
 
@@ -73,7 +82,6 @@ class Vision:
         self.analyse(rospy.Time())
 
 def decorateImage( img, lstLocs):
-    iNbColors = len(tpColors)
     for box in lstLocs:
         ClassColor = (0,0,255)
         # boite englobante
@@ -129,6 +137,7 @@ class Analyser:
         lstNames = []
         lstLocalisation = []
         lstProba = []
+        self.personCoords = (0,0)
         for i in range(iSize[0]):
             # parcours des lignes
             vLine = final_outputs[i,:]
@@ -147,7 +156,7 @@ class Analyser:
                         x2 = round(vLine[iX_LOWRIGHT] * iImgWidth  )
                         y2 = round(vLine[iY_LOWRIGHT] * iImgHeight )
                         self.personCoords = findmiddle(x1,x2,y1,y2)
-                        cv2.circle(self.image, findmiddle(x1,x2,y1,y2) , 5, (255,0,0), 10)
+                        cv2.circle(self.image, self.personCoords , 5, (255,0,0), 10)
                         lstLocalisation.append([x1,y1,x2,y2])
 
         # affichage texte des informations de detection : 
