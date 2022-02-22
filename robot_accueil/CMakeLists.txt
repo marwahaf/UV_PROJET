@@ -162,6 +162,7 @@ include_directories(
 catkin_install_python(PROGRAMS
    scripts/visu_ihm.py
    scripts/get_to_goal.py
+   scripts/get_goal.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 

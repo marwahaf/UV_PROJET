@@ -19,7 +19,7 @@ class Move_to:
         self.goal= PoseStamped()
         self.goal.header.frame_id = '/map'
         self.robot_move_to_goal =  False
-        rospy.Subscriber('scan', LaserScan, self.callback_laser)
+        #rospy.Subscriber('scan', LaserScan, self.callback_laser)
         self.goal_listener = rospy.Subscriber('/move_base_simple/goal' , PoseStamped, self.callback_goal )
         rospy.Subscriber("odom", Odometry , self.robot_position)
         self.pose_robot = PoseStamped()
@@ -89,21 +89,26 @@ class Move_to:
         local_goal = self.tfListener.transformPose('/base_footprint', self.goal)
         if self.robot_move_to_goal :
             distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
-            angle =  abs(math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x))         
-            if angle > 0.3 : 
-                self.commands.angular.z = angle
-                if distance > 0.1 :  
-                #self.commands.angular.z = angle
-                    self.commands.linear.x =  distance * 0.05    
-                else : 
-                    self.commands.linear.x =  0.0
-                    # self.commands.linear.y =  0.0
-                    # self.commands.linear.z =  0.0
-                    # self.commands.angular.x =  0.0
-                    # self.commands.angular.y =  0.0
+            angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)         
+            if distance > 0.001 : 
+                self.commands.angular.z =  (angle-self.map_point.pose.orientation.z) * 4
+                self.commands.linear.x =  distance * 0.5      
             else : 
-                self.robot_move_to_goal = False
-                self.commands.angular.z =  0.0
+                print('goal achieved')          
+            # if angle > 0.3 : 
+            #     self.commands.angular.z = angle
+            #     if distance > 0.1 :  
+            #     #self.commands.angular.z = angle
+            #         self.commands.linear.x =  distance * 0.05    
+            #     else : 
+            #         self.commands.linear.x =  0.0
+            #         # self.commands.linear.y =  0.0
+            #         # self.commands.linear.z =  0.0
+            #         # self.commands.angular.x =  0.0
+            #         # self.commands.angular.y =  0.0
+            # else : 
+            #     self.robot_move_to_goal = False
+            #     self.commands.angular.z =  0.0
                 # self.commands.linear.x =  distance * 0.5    
                 # self.commands.angular.z = abs((angle-self.map_point.pose.orientation.z)) * 0.01  
             print(distance , angle,self.commands.linear.x , self.commands.angular.z )
