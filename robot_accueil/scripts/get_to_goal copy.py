@@ -6,10 +6,10 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan 
 from sensor_msgs.msg import PointCloud2
 
-FORWARD_SPEED_MPS = 1.5
+FORWARD_SPEED_MPS = 0.5
 ANGULAR_TURN = 1
 TURN_SPEED_MPS = 0.1
-DIST_TOLERANCE = 0.1
+DIST_TOLERANCE = 0.5
 DIST_LASER_ROBOT = 0.5
 DIST_TOLERANCE_COTE = 0.5
 ANGLE_TOLERANCE = math.radians(1)
@@ -109,7 +109,7 @@ class Move_to:
                 self.commands.angular.z = 0
             # self.commands.linear.x =  distance * 0.5    
             # self.commands.angular.z = abs((angle-self.map_point.pose.orientation.z)) * 0.01  
-            print(distance, math.degrees(angle),math.degrees(theta), self.commands.linear.x, math.degrees(self.commands.angular.z))
+            # print(distance, math.degrees(angle),math.degrees(theta), self.commands.linear.x, math.degrees(self.commands.angular.z))
         self.move_command(self.commands)
 
     def callback_laser(self,data) : 
@@ -163,6 +163,7 @@ class Move_to:
             # self.move_command(self.commands)
 
     def move_command(self, data):
+        print(data)
         self.command_pub.publish(data)
 
 if __name__ == '__main__':
