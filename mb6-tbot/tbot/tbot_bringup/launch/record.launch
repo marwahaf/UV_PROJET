@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-	<node pkg="rosbag" type="record" name="rosbag_record_diag"
-       args="record -o tbot /tf /tf_static /odom /scan /camera/color/camera_info /camera/color/ /camera/aligned_depth_to_color/camera_info /camera/aligned_depth_to_color/image_raw /mobile_base/commands/velocity"/>
-</launch>

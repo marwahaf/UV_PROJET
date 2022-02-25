@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <!-- roslaunch teleop_twist_joy teleop.launch joy_config:=xbox -->
-	<include file="$(find teleop_twist_joy)/launch/teleop.launch">
-		<arg name="joy_config" value="xbox" />
-		<arg name="config_filepath" value="$(find tbot_teleop)/config/xbox.config.yaml" />
-	</include>
-</launch>

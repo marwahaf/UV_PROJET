@@ -1,4 +1,0 @@
-<launch>
-    <node name="MyTicTac" pkg="larm_tictac" type="tictac.py" />
-    <node name="MyEcho" pkg="larm_tictac" type="echo.py" output="screen" />
-</launch>

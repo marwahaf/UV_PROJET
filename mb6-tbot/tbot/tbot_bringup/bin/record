@@ -1,7 +1,0 @@
-#!/bin/bash
-
-rosbag record -o tbot /tf /tf_static \
-    /odom /scan \
-    /camera/color/camera_info /camera/color/image_raw \
-    /camera/aligned_depth_to_color/camera_info /camera/aligned_depth_to_color/image_raw \
-    /mobile_base/commands/velocity
