@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Start tbot -->
+  <include file="$(find tbot_bringup)/launch/start.launch"/>
+
+  <!-- Start teleop -->
+  <node name="teleop" pkg="teleop_twist_keyboard" type="teleop_twist_keyboard.py"  >
+    <param name="speed" value="0.2"/>
+    <param name="turn" value="0.9"/>
+    <remap from="cmd_vel" to="mobile_base/commands/velocity" />
+  </node>
+</launch>
