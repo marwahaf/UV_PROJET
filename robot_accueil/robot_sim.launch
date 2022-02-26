@@ -2,10 +2,10 @@
     <param name="use_sim_time" value="true" />
     <arg name="scan_topic"  default="scan" />
     <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
-    <!--
-    <include file="$(find tbot_bringup)/launch/minimal.launch"/>
-    <arg name="world_file" value="$(find stage_ros)/world/willow-erratic.world" />
-    -->
+    
+    <!-- <include file="$(find tbot_bringup)/launch/minimal.launch"/> -->
+    <!-- <arg name="world_file" value="$(find stage_ros)/world/willow-erratic.world" /> -->
+   
 
 
     <!-- <include file="$(find larm)/launch/challenge-1.launch"/> -->
@@ -19,8 +19,8 @@
         <arg name="yaw" value="0" />
     </include>
     
-    <node pkg="robot_accueil" type="get_to_goal copy.py" name="go_to_goal" output="screen" />
-    <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <!-- <node pkg="robot_accueil" type="get_to_goal copy.py" name="go_to_goal" output="screen" /> -->
+    <!-- <node pkg="amcl" type="amcl" name="amcl" output="screen"> -->
     <!-- Publish scans from best pose at a max of 10 Hz -->
     <!-- <param name="odom_model_type" value="diff"/>
     <param name="odom_alpha5" value="0.1"/>
@@ -51,14 +51,14 @@
     <param name="transform_tolerance" value="0.1"/>
     <param name="recovery_alpha_slow" value="0.0"/>
     <param name="recovery_alpha_fast" value="0.0"/> -->
-    </node>
+    <!-- </node> -->
 
-    <!-- <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" args="scan">
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" args="scan">
         <remap from="scan" to="$(arg scan_topic)"/>
         <param name="map_update_interval" value="5.0"/>
         <param name="odom_frame" value="/odom"/>
         <param name="maxUrange" value="4.0"/>
-    </node> -->
+    </node>
 
     <group if="$(arg rviz)">
             <!-- stuff that will only be evaluated if foo is true -->

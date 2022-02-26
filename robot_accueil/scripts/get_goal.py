@@ -7,12 +7,12 @@ from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import PointCloud
 
 PUBLISHING_RATE = 0.1 # The rate at which we publish navigation commands
-FORWARD_SPEED_MPS = 1.4
-
+FORWARD_SPEED_MPS = 1.5
+TURN_SPEED_MPS = 0.1
 
 
 thr1 = 0.6  # Laser scan range threshold
-thr2 = 1  # Turning threshold
+thr2 = 0.6 # Turning threshold 
 
 
 class Move_to:
@@ -35,10 +35,11 @@ class Move_to:
             PoseStamped, self.callback_goal )
         rospy.Subscriber("odom", Odometry , self.robot_position)
         self.command_pub = rospy.Publisher(
+            # '/mobile_base/commands/velocity',
             '/cmd_vel_mux/input/navi',
             Twist, queue_size=10)
         rospy.Timer(rospy.Duration(0.1),self.move_robot, oneshot = False)
-    
+        self.point_publish = rospy.Publisher('/pointcloud', PointCloud , queue_size = 10)
 
 
     def callback_goal(self,data):
@@ -55,7 +56,7 @@ class Move_to:
         self.angle_maxi =  data.angle_max
         # Compute the laser data to get coordinates relative to the robot
         for aDistance in data.ranges:
-            if 0.1 < aDistance and aDistance < 2.0:
+            if 0.1 < aDistance and aDistance < 2 : #mettre 0.7 au lieu de 2 en IRL   
                 aPoint = Point32()
                 aPoint.x = math.cos(angle) * aDistance
                 aPoint.y = math.sin(angle) * aDistance
@@ -67,14 +68,13 @@ class Move_to:
             self.point_2D.points.append(point)
         
         # Front value in all the laser rays
-        self.front = data.ranges[0]
+        self.front = data.ranges[288]
 
         # Left value in all the laser rays
-        self.left = data.ranges[15]
+        self.left = data.ranges[144]
 
         # Right value in all the laser rays
-        self.right = data.ranges[345]
-
+        self.right = data.ranges[600]
  
     def robot_position(self ,data):
         self.pose_robot.pose = data.pose.pose
@@ -83,54 +83,64 @@ class Move_to:
         
     
     def move_robot(self , data ):
-        self.tfListener.waitForTransform("/map", "/base_footprint", rospy.Time.now(), rospy.Duration(0.1))
-        #self.pose_robot.header.stamp =  rospy.Time(0)
-        #self.goal.header.stamp = rospy.Time(0)
-        self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot )
-        local_goal = self.tfListener.transformPose('/base_footprint', self.goal)
-        #print(self.map_point ,self.pose_robot )
+        isTurning_right = False
         isTurning = False
+
+        self.tfListener.waitForTransform("/map", "/base_footprint", rospy.Time.now(), rospy.Duration(0.1))
+        self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot )
+        local_goal = self.tfListener.transformPose('/base_footprint', self.goal)   
+       
         distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
         angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)         
+        
         self.mode= ' nothg'
         
         if self.robot_move_to_goal :
-            if distance > 0.001 : 
-                if self.front > thr1 and (self.left > thr2) and (self.right > thr2) and not isTurning:
+            if distance > 0.1 : 
+                if self.front > thr1 and self.left > thr2 and self.right > thr2 and not isTurning:
                     self.commands.angular.z =  (angle-self.map_point.pose.orientation.z) * 4
-                    self.commands.linear.x =  distance * 0.5 
+                    self.commands.linear.x =  min(distance * 0.5 , FORWARD_SPEED_MPS)
                     self.mode = 'go to goal'   
-                if(self.front < thr1): # obstacle in front
+                elif(self.front < thr1): # obstacle in front 
                     if(self.left < self.right): # more room at right
-                        self.commands.angular.z =   self.angle_maxi # turn right
                         isTurning = True
-                        self.commands.linear.x = FORWARD_SPEED_MPS
+                        isTurning_right =  True
+                        self.commands.angular.z = 0.5 * self.angle_maxi # turn right   
+                        self.commands.linear.x = 0.0          
                         self.mode =  'obstacle devant , tr'
-                    else: # more room at left
-                        self.commands.angular.z = - self.angle_maxi # turn left
-                        self.commands.linear.x = FORWARD_SPEED_MPS
-                        self.mode = 'obstacle devant , tl'                      
-                if (self.left < thr2): # obstacle at left
+                    elif isTurning_right == False: # more room at left
+                        isTurning = True
+                        self.commands.angular.z = - 0.5 * self.angle_maxi # turn left
+                        self.commands.linear.x = 0.0 
+                        self.mode = 'obstacle devant , tl'     
+                    self.commands.linear.x = 0.5   
+                elif (self.left < thr2): # obstacle at left
                     self.commands.linear.x = 0.0  # stop
-                    self.commands.angular.z =  self.angle_maxi # rotate counter-clockwise
+                    self.commands.angular.z = 0.5 *  self.angle_maxi # rotate counter-clockwise
                     isTurning = True
                     self.mode = 'obstacle left , tr'
                 elif (self.right < thr2): # obstacle at right
                     self.commands.linear.x = 0.0  # stop
-                    self.commands.angular.z = - self.angle_maxi  # rotate clockwise  
+                    self.commands.angular.z = - 0.5 * self.angle_maxi  # rotate clockwise  
                     isTurning = True
                     self.mode = 'obstacle right , tl'
-                if self.front > thr1 and (self.left > thr2) and (self.right > thr2): # back to no danger
+                # elif (self.left < thr2) or (self.left < thr2) : 
+                #     self.commands.angular.z = 0.0
+                #     self.commands.linear.x = FORWARD_SPEED_MPS
+                elif (self.front > thr1) and (self.left > thr2) and (self.right > thr2): # back to no danger
                     isTurning = False
+                    isTurning_right =  False
                     self.commands.angular.z =  (angle-self.map_point.pose.orientation.z) * 4
-                    self.commands.linear.x =  distance * 0.5 
+                    self.commands.linear.x =  min( distance * 0.5 , FORWARD_SPEED_MPS) 
                     self.mode = 'plus d obstacle '
             else : 
                 print('goal achieved')   
                 self.robot_move_to_goal= False    
+                self.commands.angular.z =  0.0
+                self.commands.linear.x = 0.0
         
         self.move_command(self.commands)
-        print(self.robot_move_to_goal , self.mode , self.left ,self.right , self.angle_maxi)
+        print(self.robot_move_to_goal , self.mode , self.front , self.left ,self.right , self.angle_maxi)
 
 
 
