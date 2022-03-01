@@ -30,7 +30,8 @@ class Move_to:
         self.map_point = PoseStamped()
         self.obj_detected = False
         self.command_pub = rospy.Publisher(
-            '/cmd_vel_mux/input/navi',
+            # '/cmd_vel_mux/input/navi',
+            '/mobile_base/commands/velocity',
             Twist, queue_size=1)
         #rospy.Timer(rospy.Duration(0.1),self.move_robot, oneshot = False)
         self.turnright = False
@@ -109,7 +110,7 @@ class Move_to:
                 self.commands.angular.z = 0
             # self.commands.linear.x =  distance * 0.5    
             # self.commands.angular.z = abs((angle-self.map_point.pose.orientation.z)) * 0.01  
-            # print(distance, math.degrees(angle),math.degrees(theta), self.commands.linear.x, math.degrees(self.commands.angular.z))
+            print(distance, math.degrees(angle), self.commands.linear.x, math.degrees(self.commands.angular.z))
         self.move_command(self.commands)
 
     def callback_laser(self,data) : 
@@ -134,7 +135,7 @@ class Move_to:
             # if point is in a dangerous zone
             self.obj_detected = True
             if ( point[0] > 0.05 and point[0] < 1 and abs(point[1]) < DIST_TOLERANCE_COTE):
-                # print("Obj detected")
+                print("Obj detected")
                 self.point_2D.data = point
                 #if the point is really close, speed up and reverse
                 # if(point[0] < 0.2):
@@ -163,7 +164,7 @@ class Move_to:
             # self.move_command(self.commands)
 
     def move_command(self, data):
-        print(data)
+        # print(data)
         self.command_pub.publish(data)
 
 if __name__ == '__main__':

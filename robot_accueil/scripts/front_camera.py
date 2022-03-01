@@ -1,3 +1,4 @@
+from email.header import Header
 import cv2
 import sys
 import math
@@ -54,6 +55,7 @@ class Vision:
         #print("DBG : where x = "+ str(pix))
         #print("DBG : Shape" +str(f.shape))
         return math.radians(-ang) #-ang is for the Y values
+
     def analyse(self, data):
         if self.cv_image is not None and self.depths is not None :
             self.cvAnalyser.analyse()
@@ -61,19 +63,21 @@ class Vision:
                 img,coords = self.cvAnalyser.result()
                 self.publisher.publish(self.bridge.cv2_to_imgmsg(img, "bgr8") )
                 #calculate the distances in the map
-                xangle = self.pixtoangle(self.depths.shape[1],coords[0],CAMERA_ANGLE) #Get horizontal angle
-                theta = self.pixtoangle(self.depths.shape[0],coords[1],CAMERA_ANGLE_OMEGA) #Get vertical angle
-                d = (self.depths[coords[1]][coords[0]]/1000) * math.cos(theta)
-                x = d * math.cos(xangle)
-                y = d * math.sin(xangle)
-                person = Marker(
-                    type = Marker.CYLINDER,
-                    lifetime = rospy.Duration(0),
-                    scale=Vector3(0.1, 0.1, 0.1),
-                    color=ColorRGBA(0.0, 1.0, 0.0, 0.8),
-                    pose = Pose(Point(x,y,0),Quaternion())
-                    )
-                self.person.publish(person)
+                if(coords[0]!=-1 and coords[1]!=-1):
+                    xangle = self.pixtoangle(self.depths.shape[1],coords[0],CAMERA_ANGLE) #Get horizontal angle
+                    theta = self.pixtoangle(self.depths.shape[0],coords[1],CAMERA_ANGLE_OMEGA) #Get vertical angle
+                    d = (self.depths[coords[1]][coords[0]]/1000) * math.cos(theta)
+                    x = d * math.cos(xangle)
+                    y = d * math.sin(xangle)
+                    person = Marker(
+                        type = Marker.CYLINDER,
+                        lifetime = rospy.Duration(0),
+                        scale=Vector3(0.1, 0.1, 0.1),
+                        color=ColorRGBA(0.0, 1.0, 0.0, 0.8),
+                        pose = Pose(Point(x,y,0),Quaternion())
+                        )
+                    person.header.frame_id = 'base_footprint'
+                    self.person.publish(person)
             except CvBridgeError as e:
                 print(e)
 
@@ -137,7 +141,7 @@ class Analyser:
         lstNames = []
         lstLocalisation = []
         lstProba = []
-        self.personCoords = (0,0)
+        self.personCoords = (-1,-1)
         for i in range(iSize[0]):
             # parcours des lignes
             vLine = final_outputs[i,:]
@@ -150,6 +154,7 @@ class Analyser:
                     lstLabels.append(iClass)
                     lstProba.append(vLine[iCLASS_CONFIDENCE])
                     lstNames.append(lstszClassName[iClass])
+                    #Si probabilité réseau > à seuil
                     if(vLine[iCLASS_CONFIDENCE]>= 0.95):
                         x1 = round(vLine[iX_TOPLEFT] * iImgWidth   )
                         y1 = round(vLine[iY_TOPLEFT] * iImgHeight  )
