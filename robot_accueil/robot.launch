@@ -2,74 +2,68 @@
     <!-- <include file="$(find larm)/launch/challenge-1.launch"/> -->
     <include file="$(find tbot_bringup)/launch/start.launch"/>
     
-
     <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
     <!--
     <include file="$(find tbot_bringup)/launch/minimal.launch"/>
     <arg name="world_file" value="$(find stage_ros)/world/willow-erratic.world" />
     -->
-    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" args="scan">
+
+    <!-- <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" args="scan">
         <param name="maxUrange" value="4.0"/>
-    </node>
+    </node> -->
 
     <!-- <node pkg="robot_accueil" type="get_to_goal copy.py" name="get_goal" output="screen" >
         <remap from="/cmd_vel_mux/input/navi" to="/mobile_base/commands/velocity"/>
     </node> -->
     
-<!-- 
+    <!-- 
     <arg name="map_file" default="$(find robot_accueil)/map/dia.yaml"/>
     <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" >
         <remap from="scan" to="$(arg scan_topic)"/>
         <param name="map_update_interval" value="5.0"/>
         <param name="maxUrange" value="4.0"/>
     </node> -->
+
     <!-- Localization -->
     <!-- <arg name="initial_pose_x" default="0.0" />
     <arg name="initial_pose_y" default="0.0" />
     <arg name="initial_pose_a" default="0.0" />
      -->
+
     <!-- <include file="$(find grp-poire)/launch/amcl.launch.xml">
         <arg name="initial_pose_x" value="$(arg initial_pose_x)" />
         <arg name="initial_pose_y" value="$(arg initial_pose_y)" />
         <arg name="initial_pose_a" value="$(arg initial_pose_a)" />
-    </include>  -->
-
-
-    <!-- <node pkg="amcl" type="amcl" name="amcl" output="screen"> -->
-        <!-- Publish scans from best pose at a max of 10 Hz -->
-        <!-- <param name="odom_model_type" value="diff"/>
-        <param name="odom_alpha5" value="0.1"/>
-        <param name="gui_publish_rate" value="10.0"/>
-        <param name="laser_max_beams" value="30"/>
-        <param name="min_particles" value="500"/>
-        <param name="max_particles" value="5000"/>
-        <param name="kld_err" value="0.05"/>
-        <param name="kld_z" value="0.99"/>
-        <param name="odom_alpha1" value="0.2"/>
-        <param name="odom_alpha2" value="0.2"/> -->
-        <!-- #translation std dev, m -->
-        <!-- <param name="odom_alpha3" value="0.8"/>
-        <param name="odom_alpha4" value="0.2"/>
-        <param name="laser_z_hit" value="0.5"/>
-        <param name="laser_z_short" value="0.05"/>
-        <param name="laser_z_max" value="0.05"/>
-        <param name="laser_z_rand" value="0.5"/>
-        <param name="laser_sigma_hit" value="0.2"/>
-        <param name="laser_lambda_short" value="0.1"/>
-        <param name="laser_model_type" value="likelihood_field"/>
-        <param name="laser_model_type" value="beam"/>
-        <param name="laser_likelihood_max_dist" value="2.0"/>
-        <param name="update_min_d" value="0.2"/>
-        <param name="update_min_a" value="0.5"/>
-        <param name="odom_frame_id" value="odom"/>
-        <param name="resample_interval" value="1"/>
-        <param name="transform_tolerance" value="0.1"/>
-        <param name="recovery_alpha_slow" value="0.0"/>
-        <param name="recovery_alpha_fast" value="0.0"/> 
-    </node> -->
-
-
+    </include> -->
     
+    <arg name="laser" default="scan" />
+    <arg name="map_file" default="$(find robot_accueil)/map/map_etage.yaml"/>
+    
+    <!-- Localization -->
+    <arg name="robot_init_x" default="0.0" />
+    <arg name="robot_init_y" default="0.0"/>
+    <arg name="robot_init_phi" default="0.0" />
+
+     <!-- MAP SERVER -->
+    <node name="map_server" pkg="map_server" type="map_server"  args="$(find robot_accueil)/map/map_etage.yaml" respawn="true" >
+        <!-- <remap from="map" to="$(arg map_etage)"/> -->
+    </node>
+
+     <!-- AMCL -->
+     <node pkg="amcl" type="amcl" name="amcl" >
+        <!-- <remap from="scan" to="$(arg laser)/scan" /> -->
+        <remap from="map" to="map_file" />
+        <remap from="scan" to="scan"/>
+        <param name="odom_frame_id" value="odom"/>
+        <param name="base_frame_id" value="base_link"/>
+        <param name="global_frame_id" value="map"/>
+        <param name="tf_broadcast" value="true" />
+        <param name="initial_pose_x" value="$(arg robot_init_x)"/>
+        <param name="initial_pose_y" value="$(arg robot_init_y)"/>
+        <param name="initial_pose_a" value="$(arg robot_init_phi)"/>
+        <!-- <rosparam command="load" file="$(env ROBOT_BRINGUP_PATH)/parameters/localization/amcl.yaml" /> -->
+     </node>
+
     <param name="rviz" value="false" unless="$(arg rviz)" /> <!-- This param won't be set when "unless" condition is met -->
     <group if="$(arg rviz)">
             <!-- stuff that will only be evaluated if foo is true -->
