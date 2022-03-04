@@ -49,10 +49,8 @@ class Move_to:
         rospy.Subscriber("odom", Odometry , self.robot_position)
         self.command_pub = rospy.Publisher(
             '/mobile_base/commands/velocity',
-            # '/cmd_vel_mux/input/navi',
             Twist, queue_size=10)
         self.arrived = rospy.Publisher('/goal/home_returned', PoseStamped,queue_size=1)
-        # rospy.Timer(rospy.Duration(0.1),self.move_robot, oneshot = False)
         self.point_publish = rospy.Publisher('/pointcloud', PointCloud , queue_size = 10)
 
 
@@ -118,19 +116,16 @@ class Move_to:
     def robot_position(self ,data):
         self.pose_robot.pose = data.pose.pose
         self.pose_robot.header.frame_id = data.header.frame_id
-        #self.map_point = self.tfListener.transformPose('/map', self.pose_robotn )
         
     
     def move_robot(self):
-        # self.tfListener.waitForTransform("/map", "/base_footprint", rospy.Time.now(), rospy.Duration(0.1))
         self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot )
         local_goal = self.tfListener.transformPose('/base_footprint', self.goal)   
         print(local_goal.pose.position)
         distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
         angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)         
-        self.mode= ' nothg'
+        self.mode= ' nothing'
 
-        # if goal get
         if self.robot_move_to_goal :
             # if robot is far the goal
             if distance > GOAL_RADIUS : 
@@ -157,7 +152,6 @@ class Move_to:
                     if(obj != []):
                         objects_in_box.append(obj)
                 # if obstacle has an x < DIST_TOLERANCE_X and an y < DIST_TOLERANCE_ASIDE => Obstacle is in a box defined forward the robot
-                # if (any([val<DIST_TOLERANCE_FORWARD for val in obstacles_x]) and any([abs(val) < DIST_TOLERANCE_ASIDE for val in obstacles_y])):                      
                 if objects_in_box != []:
                     self.point_publish.publish(point)
                     point.points = objects_in_box
