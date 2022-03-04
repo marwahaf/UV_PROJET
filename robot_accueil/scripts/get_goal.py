@@ -86,6 +86,7 @@ class Move_to:
         print(self.goal)
 
     def callback_laser(self,data): 
+        print(data.header.frame_id)
         self.isTurning = False
         self.point_2D.points.clear()
         obstacles = []      # Getting the obstacles detected by the laser

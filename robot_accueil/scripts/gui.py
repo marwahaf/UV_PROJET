@@ -72,7 +72,7 @@ class MyNode:
         #When a "/people" topic is received, then put the "starting" gui
         self.welcomePage()
 
-    def page2(self):
+    def page2(self, data):
         for w in self.master.winfo_children():
             w.destroy()
         self.label = tk.Label(self.master, text="C'est la page 2 ",font=('Times',30),bg = 'white')
