@@ -15,9 +15,10 @@ class MyNode:
     def __init__(self, master):
     #Creation of the Ros Subscribers and publishers for the good topics
         self.sub = rospy.Subscriber("person", PointStamped, callback=self.people)
-        self.arrived = rospy.Subscriber("/goal/arrived", PointStamped, callback=self.page2)
-        self.homed = rospy.Subscriber("/goal/home_returned", PointStamped, callback=self.welcomePage)
-        self.pub = rospy.Publisher("goal",PoseStamped,queue_size=1)
+        self.arrived = rospy.Subscriber("/goal/arrived", PoseStamped, callback=self.page2)
+        self.homed = rospy.Subscriber("/goal/home_returned", PoseStamped, callback=self.welcomePage)
+        self.pub = rospy.Publisher("/move_base_simple/goal",PoseStamped,queue_size=1)
+        self.pub2 = rospy.Publisher("/goal/returnhome",PoseStamped,queue_size=1)
 
     #getting the frame of the GUI
         self.root = master
@@ -52,6 +53,9 @@ class MyNode:
         tmp_goal.pose.position.y = b
         print(tmp_goal)
         self.pub.publish(tmp_goal)
+    def returnhome(self):
+        tmp_goal = PoseStamped()
+        self.pub2.publish(tmp_goal)
 
     def welcomePage(self):
     #Sets the first page of the GUI that the user see when entering.
