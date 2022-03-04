@@ -33,7 +33,7 @@ class Move_to:
         self.isTurning_right = False # Flag to detect that a movement is being made
         self.isTurning_left = False
         self.moving_mode = 'no move'
-        self.factor = 1
+        self.factor = 1     #Factor for linear velocity (Going front or going back)
 
         self.goal.header.frame_id = '/map'
         self.laser = rospy.Subscriber('front_scan', LaserScan, self.callback_laser)
@@ -84,25 +84,32 @@ class Move_to:
     def callback_laser(self,data): 
         self.isTurning = False
         self.point_2D.points.clear()
-        obstacles = []
-        contiguous_obstacles = []
+        obstacles = []      # Getting the obstacles detected by the laser
+        contiguous_obstacles = []   # Getting all points that are continuous (without "air between")
         angle = data.angle_min
         self.angle_maxi =  data.angle_max
         # Compute the laser data to get coordinates relative to the robot
         for aDistance in data.ranges:
-            if data.range_min*2 < aDistance and aDistance < DIST_LASER :   
+
+            # if point obstacle is relevant
+            if data.range_min*2 < aDistance and aDistance < DIST_LASER :  
+                #then keep point in memory 
                 aPoint = Point32()
                 aPoint.x = math.cos(angle) * aDistance
                 aPoint.y = math.sin(angle) * aDistance
                 aPoint.z = 0.0
                 contiguous_obstacles.append(aPoint)
+            # if point obstacle is not relevant (too far or doesn't exist)
             else:
+                #then verify if we have an object in memory
                 if(contiguous_obstacles != []):
+                    #if obstacle in memory, add it to the obstacles list
                     obstacles.append(contiguous_obstacles)
                 contiguous_obstacles = []
             angle += data.angle_increment
 
         self.point_2D.points = obstacles
+
         # Front value in all the laser rays
         self.front = data.ranges[int(len(data.ranges)/2)]
         
@@ -122,12 +129,14 @@ class Move_to:
         self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot )
         local_goal = self.tfListener.transformPose('/base_footprint', self.goal)   
         print(local_goal.pose.position)
+        print('---')
+        print(self.map_point.pose.position)
+        print('###')
         distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
         angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)         
-        if self.factor == -1:
-            angle -= math.pi
+        print((angle-self.map_point.pose.orientation.z))
         self.mode= ' nothing'
-
+        print(angle-self.map_point.pose.orientation.z)
         if self.robot_move_to_goal :
             # if robot is far the goal
             if distance > GOAL_RADIUS : 
@@ -148,7 +157,7 @@ class Move_to:
                     if self.factor == 1:
                         dist_tolerance = DIST_TOLERANCE_FORWARD
                     else:
-                        dist_tolerance = 0.2
+                        dist_tolerance = DIST_TOLERANCE_FORWARD
                     obj = [val for val in l if (val.x<dist_tolerance and abs(val.y)<DIST_TOLERANCE_ASIDE)]
                     point.points+=obj
                     if(obj != []):
@@ -269,7 +278,10 @@ class Move_to:
                     if self.factor == 1:
                         self.commands.angular.z =  (angle-self.map_point.pose.orientation.z) #* 4
                     else:
-                        self.commands.angular.z =  (angle-self.map_point.pose.orientation.z) #* 4
+                        if (angle-self.map_point.pose.orientation.z) >=0:
+                            self.commands.angular.z =  math.pi - (angle-self.map_point.pose.orientation.z) #* 4
+                        else:
+                            self.commands.angular.z =  math.pi + (angle-self.map_point.pose.orientation.z) #* 4
                     self.commands.linear.x =  self.factor * min(distance, SPEED_GO_GOAL)
                     self.mode = 'go to goal'
             else : 
@@ -284,7 +296,7 @@ class Move_to:
                     self.arrived.publish(self.goal)
         
         self.move_command(self.commands)
-        print(self.robot_move_to_goal ,self.moving_mode, self.mode , distance, angle)
+        print(self.robot_move_to_goal ,self.moving_mode, self.mode , distance, angle, self.commands.angular.z)
 
 
 
