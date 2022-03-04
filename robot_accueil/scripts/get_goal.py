@@ -163,7 +163,6 @@ class Move_to:
                         objects_in_box.append(obj) # append the objects in the same time in the second list
                 # if there is an obstacle in the "box"
                 if objects_in_box != []:
-                    print(point)
                     self.point_publish.publish(point) #publish the pointcloud of all points detected as obstacles (useful for Rviz and debug)
                     point.points = objects_in_box
                     # checking if the goal is also in this box => in this case, goal is considered achieved

@@ -112,7 +112,7 @@ class Vision:
                         lifetime = rospy.Duration(0),
                         scale=Vector3(0.1, 0.1, 0.1),
                         color=ColorRGBA(0.0, 1.0, 0.0, 0.8),
-                        pose = Pose(Point(-x,-y,0),Quaternion())
+                        pose = Pose(Point(x,y,0),Quaternion())
                         )
                     person.header.frame_id = 'laserback_link'
                     print(x,y,d, self.depths[coords[1]][coords[0]], coords[1],coords[0])
