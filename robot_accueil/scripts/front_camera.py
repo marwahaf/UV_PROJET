@@ -1,14 +1,13 @@
-from email.header import Header
+#!/usr/bin/python3
 import cv2
 import sys
 import math
 from cv_bridge import CvBridge,CvBridgeError
 import rospy, rospkg
 from sensor_msgs.msg import Image
-from geometry_msgs.msg import Vector3, Pose,Quaternion, Point
+from geometry_msgs.msg import Vector3, Pose,Quaternion, Point,PoseStamped
 from visualization_msgs.msg import Marker
 from std_msgs.msg import ColorRGBA
-from consts import *
 
 #Get the path of the "Robot_accueil" package.
 pkg_path = rospkg.RosPack().get_path("robot_accueil")
@@ -18,6 +17,40 @@ model_path = pkg_path + "/dnn-model/MobileNetSSD_deploy"
 dnn_model = model_path + ".caffemodel"
 dnn_config = model_path + ".prototxt"
 
+CAMERA_ANGLE= 69
+CAMERA_ANGLE_OMEGA = 42
+""" Modele DNN """
+
+dbMeanVal = 127.5                                       # ->utilise pour la fonction de construction des
+dbScaleFactor = 0.007843                                #   "blob" que necessite l'utilisation de ce DNN
+# indice pour decoder la sortie du reseau               #    avec OpenCV
+iCLASS_ID = 1                                           # ->indice correspondant a l'identifiant (entier) de la classe
+iCLASS_CONFIDENCE = 2                                   # ->indice correspondant a la probabilité d'appartenance a la classe
+                                                        #   (selon le "point de vue", parfois discutable, du reseau lui-meme...)
+iX_TOPLEFT = 3                                          # ->indice de l'abscisse du coin superieur gauche de la fenetre de detection d'un objet
+iY_TOPLEFT = 4                                          # ->indice de l'ordonnee....
+iX_LOWRIGHT = 5                                         # ->indice de l'abscisse du coin inferieur droit de la fenetre de detecton d'un objet
+iY_LOWRIGHT = 6                                         # ->indice de l'ordonnee
+# taille des images presentees au reseau
+iNET_INPUT_WIDTH = 300                                  # ->pour se conformer a la taille des donnees d'entre du reseau DNN
+iNET_INPUT_HEIGHT = 300                                 #   (idem)
+# autres parametres
+iOUTPUT_NB_LINES = 100                                  # ->dimension de la sortie du DNN
+iOUTPUT_NB_COLS = 7                                     # ->dimension de la sortie du DNN
+#..................................
+# couleurs pour affichage graphique
+#..................................
+tpColors= [ (0,0,255), (0,255,0), (0,255,255),(255,0,0),(255,0,255),(255,255,0),(255,255,255) ]
+
+#.....................................................
+# liste des classes prises en compte dans ce modele: :
+#..................................................... 
+lstszClassName = ("background","aeroplane", "bicycle",
+    "bird", "boat","bottle", "bus", "car", "cat", "chair",
+    "cow", "diningtable", "dog", "horse","motorbike", "person",
+    "pottedplant", "sheep", "sofa", "train", "tvmonitor")
+
+
 class Vision:
     def __init__(self, cvAnalyser, topic= "image_raw",depth_topic = "image_raw", synchronous= True, seconds= 0.1):
         # Attributs:
@@ -26,7 +59,10 @@ class Vision:
         self.cv_image= None
         self.depths = None
         self.timer = None
+        self.countFrames= 0
+        self.start = True
         # Subsciber:
+        self.homegoal = rospy.Subscriber('/goal/home_returned', PoseStamped, self.returnhome)
         self.depthSub = rospy.Subscriber(depth_topic,Image,self.depthCallback)
         if( synchronous ):
             self.subscriber = rospy.Subscriber(topic, Image, self.synchroCallback)
@@ -35,7 +71,8 @@ class Vision:
             self.timer = rospy.Timer( rospy.Duration(seconds), self.analyse)
         # Publisher:
         self.publisher = rospy.Publisher("analyzed/image_raw",Image, queue_size=10)
-        self.person = rospy.Publisher("object",Marker,queue_size=1)
+        self.person = rospy.Publisher("/person",Marker,queue_size=1)
+        self.goal_person = rospy.Publisher("/goal/person",PoseStamped,queue_size=1)
 
     def callback(self, ros_image):
         self.cv_image= None
@@ -56,6 +93,10 @@ class Vision:
         #print("DBG : Shape" +str(f.shape))
         return math.radians(-ang) #-ang is for the Y values
 
+    def returnhome(self, data):
+        self.start = True
+        print('Returned home, camera OK.')
+
     def analyse(self, data):
         if self.cv_image is not None and self.depths is not None :
             self.cvAnalyser.analyse()
@@ -63,7 +104,7 @@ class Vision:
                 img,coords = self.cvAnalyser.result()
                 self.publisher.publish(self.bridge.cv2_to_imgmsg(img, "bgr8") )
                 #calculate the distances in the map
-                if(coords[0]!=-1 and coords[1]!=-1):
+                if(coords[0]!=-1 and coords[1]!=-1) and self.depths[coords[1]][coords[0]]!=0:
                     xangle = self.pixtoangle(self.depths.shape[1],coords[0],CAMERA_ANGLE) #Get horizontal angle
                     theta = self.pixtoangle(self.depths.shape[0],coords[1],CAMERA_ANGLE_OMEGA) #Get vertical angle
                     d = (self.depths[coords[1]][coords[0]]/1000) * math.cos(theta)
@@ -74,10 +115,25 @@ class Vision:
                         lifetime = rospy.Duration(0),
                         scale=Vector3(0.1, 0.1, 0.1),
                         color=ColorRGBA(0.0, 1.0, 0.0, 0.8),
-                        pose = Pose(Point(x,y,0),Quaternion())
+                        pose = Pose(Point(-x,-y,0),Quaternion())
                         )
                     person.header.frame_id = 'base_footprint'
-                    self.person.publish(person)
+                    print(x,y,d, self.depths[coords[1]][coords[0]], coords[1],coords[0])
+                    if self.countFrames>= 10:
+                        self.person.publish(person)
+                        print("Pub person")
+                        if self.start:
+                            print("pub goal_person")
+                            self.start = False
+                            tmp_goal = PoseStamped()
+                            tmp_goal.header.frame_id = 'base_footprint'
+                            tmp_goal.pose.position.x = -x
+                            tmp_goal.pose.position.y = -y
+                            self.goal_person.publish(tmp_goal)
+                    else:
+                        self.countFrames +=1
+                else:
+                    self.countFrames = 0
             except CvBridgeError as e:
                 print(e)
 
@@ -165,12 +221,12 @@ class Analyser:
                         lstLocalisation.append([x1,y1,x2,y2])
 
         # affichage texte des informations de detection : 
-        print("objets detectes = ")
-        print(lstNames)
-        print("localisations = ")
-        print(lstLocalisation)
-        print("probabilites reseau = ")
-        print(lstProba)
+        # print("objets detectes = ")
+        # print(lstNames)
+        # print("localisations = ")
+        # print(lstLocalisation)
+        # print("probabilites reseau = ")
+        # print(lstProba)
         # affichage des elements detectes dans la fenetre graphique
         decorateImage( self.image, lstLocalisation)
         #cv2.imshow('DETECTION', self.image)
