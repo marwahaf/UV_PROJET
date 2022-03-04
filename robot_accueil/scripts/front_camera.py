@@ -88,9 +88,6 @@ class Vision:
     def pixtoangle(self, size ,pix,cam_angle):
         ang = pix * cam_angle / size ##Calc angle from 0 to f.shape
         ang -= cam_angle/2 #Apply offset to set 0 in the middle
-        #print("DBG : Angle = " + str(ang))
-        #print("DBG : where x = "+ str(pix))
-        #print("DBG : Shape" +str(f.shape))
         return math.radians(-ang) #-ang is for the Y values
 
     def returnhome(self, data):
@@ -221,16 +218,8 @@ class Analyser:
                         lstLocalisation.append([x1,y1,x2,y2])
 
         # affichage texte des informations de detection : 
-        # print("objets detectes = ")
-        # print(lstNames)
-        # print("localisations = ")
-        # print(lstLocalisation)
-        # print("probabilites reseau = ")
-        # print(lstProba)
-        # affichage des elements detectes dans la fenetre graphique
         decorateImage( self.image, lstLocalisation)
-        #cv2.imshow('DETECTION', self.image)
-        #cv2.waitKey(2)
+
 
     def result(self):
         return self.image, self.personCoords
