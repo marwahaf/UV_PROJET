@@ -114,7 +114,7 @@ class Vision:
                         color=ColorRGBA(0.0, 1.0, 0.0, 0.8),
                         pose = Pose(Point(-x,-y,0),Quaternion())
                         )
-                    person.header.frame_id = 'base_footprint'
+                    person.header.frame_id = 'laserback_link'
                     print(x,y,d, self.depths[coords[1]][coords[0]], coords[1],coords[0])
                     if self.countFrames>= 10:
                         self.person.publish(person)

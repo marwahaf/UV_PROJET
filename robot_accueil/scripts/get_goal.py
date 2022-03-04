@@ -12,9 +12,9 @@ PUBLISHING_RATE = 0.1           # The rate at which we publish navigation comman
 SPEED_GO_GOAL = 0.3             # The linear speed of the robot when he goes to goal 
 SPEED_AVOID_OBSTACLE = 0      # The linear speed of the robot when an obstacle is detected
 TURNING_SPEED = 1.3               # The angular speed when the robot turns when obstacle detected
-DIST_TOLERANCE_FORWARD = 0.2    # The distance tolerance forward the robot to be considered as an obstacle
-DIST_TOLERANCE_BACKWARD = 0.2   # The distance tolerance backward the robot when the robot goes backward
-DIST_TOLERANCE_ASIDE = 0.2      # The distance tolerance just left and right the robot to be considered as an obstacle
+DIST_TOLERANCE_FORWARD = 0.25    # The distance tolerance forward the robot to be considered as an obstacle
+DIST_TOLERANCE_BACKWARD = 0.25   # The distance tolerance backward the robot when the robot goes backward
+DIST_TOLERANCE_ASIDE = 0.25      # The distance tolerance just left and right the robot to be considered as an obstacle
 DIST_LASER = 1                  # The laser range potential obstacles detection
 GOAL_RADIUS = 0.2               # The distance to be considered arrived at Goal
 
@@ -144,22 +144,26 @@ class Move_to:
                 # if moving forward
                 if self.factor == 1:
                     point.header.frame_id = 'laserfront_link'
-                    dist_tolerance = DIST_TOLERANCE_FORWARD
                 # if moving backward
                 else:
                     point.header.frame_id = 'laserback_link'
-                    dist_tolerance = DIST_TOLERANCE_BACKWARD
                 objects_in_box = [] # future list of list of the objects in the "box"
                 #Get only the points in the "protection area"
                 for l in self.point_2D.points:
                     # getting the points of each list in pointcloud.points
-                    obj = [val for val in l if (val.x<dist_tolerance and abs(val.y)<DIST_TOLERANCE_ASIDE and self.factor * val.x>=0 )]
+                    if self.factor == 1:
+                        dist_tolerance = DIST_TOLERANCE_FORWARD
+                    # if moving backward
+                    else:
+                        dist_tolerance = DIST_TOLERANCE_BACKWARD
+                    obj = [val for val in l if (val.x<dist_tolerance and abs(val.y)<DIST_TOLERANCE_ASIDE)]
                     point.points+=obj # Getting an unique list of all the points in box to publish for Rviz
                     #if there is an object in box
                     if(obj != []):
                         objects_in_box.append(obj) # append the objects in the same time in the second list
                 # if there is an obstacle in the "box"
                 if objects_in_box != []:
+                    print(point)
                     self.point_publish.publish(point) #publish the pointcloud of all points detected as obstacles (useful for Rviz and debug)
                     point.points = objects_in_box
                     # checking if the goal is also in this box => in this case, goal is considered achieved
@@ -267,7 +271,7 @@ class Move_to:
                                             self.commands.linear.x = self.factor * SPEED_AVOID_OBSTACLE
                                             self.mode = '>1 obs F, TL'
                 # if no obstacles in the "protection box of the robot" but just left or right of him.
-                elif (self.factor * self.left <= DIST_TOLERANCE_ASIDE+0.1 or self.factor * self.right <= DIST_TOLERANCE_ASIDE+0.1):
+                elif (self.left <= DIST_TOLERANCE_ASIDE+0.1 or self.right <= DIST_TOLERANCE_ASIDE+0.1):
                     point.points = []
                     for l in self.point_2D.points:
                         point.points += [val for val in l]
