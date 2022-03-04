@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from pdb import post_mortem
 from turtle import Turtle, TurtleScreen
 import rospy , tf , tf.transformations , math , numpy
 from geometry_msgs.msg import PoseStamped , Twist , Point32
@@ -12,10 +13,10 @@ SPEED_GO_GOAL = 0.3             # The linear speed of the robot when he goes to 
 SPEED_AVOID_OBSTACLE = 0      # The linear speed of the robot when an obstacle is detected
 TURNING_SPEED = 1.3               # The angular speed when the robot turns when obstacle detected
 DIST_TOLERANCE_FORWARD = 0.2    # The distance tolerance forward the robot to be considered as an obstacle
-DIST_TOLERANCE_BACKWARD = 0.2  
+DIST_TOLERANCE_BACKWARD = 0.2   # The distance tolerance backward the robot when the robot goes backward
 DIST_TOLERANCE_ASIDE = 0.2      # The distance tolerance just left and right the robot to be considered as an obstacle
 DIST_LASER = 1                  # The laser range potential obstacles detection
-GOAL_RADIUS = 0.2
+GOAL_RADIUS = 0.2               # The distance to be considered arrived at Goal
 
 thr1 = 0.6  # Laser scan range threshold
 thr2 = 0.6 # Turning threshold 
@@ -51,9 +52,10 @@ class Move_to:
         self.command_pub = rospy.Publisher(
             '/mobile_base/commands/velocity',
             Twist, queue_size=10)
-        self.arrived = rospy.Publisher('/goal/home_returned', PoseStamped,queue_size=1)
+            
+        self.arrived = rospy.Publisher('/goal/arrived', PoseStamped, queue_size=1)
+        self.home_returned = rospy.Publisher('/goal/home_returned', PoseStamped,queue_size=1)
         self.point_publish = rospy.Publisher('/pointcloud', PointCloud , queue_size = 10)
-
 
     def returnhome(self,data):
         self.returninghome = True
@@ -130,48 +132,44 @@ class Move_to:
     def move_robot(self):
         self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot )
         local_goal = self.tfListener.transformPose('/base_footprint', self.goal)   
-        print(local_goal.pose.position)
-        print('---')
-        print(self.map_point.pose.position)
-        print('###')
         distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
         angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)         
-        print((angle-self.map_point.pose.orientation.z))
         self.mode= ' nothing'
-        print(angle-self.map_point.pose.orientation.z)
         if self.robot_move_to_goal :
             # if robot is far the goal
-            if distance > GOAL_RADIUS : 
-                obstacles_x = []
-                obstacles_y = []
-                for obst in self.point_2D.points:
-                    obstacles_x += [value.x for value in obst]
-                    obstacles_y += [value.y for value in obst]
+            if distance > GOAL_RADIUS :
+                # Create a PointCloud for Rviz
                 point = PointCloud()
                 point.header.stamp = rospy.Time(0)
+                # if moving forward
                 if self.factor == 1:
                     point.header.frame_id = 'laserfront_link'
+                    dist_tolerance = DIST_TOLERANCE_FORWARD
+                # if moving backward
                 else:
                     point.header.frame_id = 'laserback_link'
-                objects_in_box = []
+                    dist_tolerance = DIST_TOLERANCE_BACKWARD
+                objects_in_box = [] # future list of list of the objects in the "box"
                 #Get only the points in the "protection area"
                 for l in self.point_2D.points:
-                    if self.factor == 1:
-                        dist_tolerance = DIST_TOLERANCE_FORWARD
-                    else:
-                        dist_tolerance = DIST_TOLERANCE_BACKWARD
-                    obj = [val for val in l if (val.x<dist_tolerance and abs(val.y)<DIST_TOLERANCE_ASIDE)]
-                    point.points+=obj
+                    # getting the points of each list in pointcloud.points
+                    obj = [val for val in l if (val.x<dist_tolerance and abs(val.y)<DIST_TOLERANCE_ASIDE and self.factor * val.x>=0 )]
+                    point.points+=obj # Getting an unique list of all the points in box to publish for Rviz
+                    #if there is an object in box
                     if(obj != []):
-                        objects_in_box.append(obj)
-                # if obstacle has an x < DIST_TOLERANCE_X and an y < DIST_TOLERANCE_ASIDE => Obstacle is in a box defined forward the robot
+                        objects_in_box.append(obj) # append the objects in the same time in the second list
+                # if there is an obstacle in the "box"
                 if objects_in_box != []:
-                    self.point_publish.publish(point)
+                    self.point_publish.publish(point) #publish the pointcloud of all points detected as obstacles (useful for Rviz and debug)
                     point.points = objects_in_box
-                    #checking if the goal is also in this box => in this case, goal is considered achieved
+                    # checking if the goal is also in this box => in this case, goal is considered achieved
+                    # to avoid cases when goal is in obstacle 
                     if(abs(local_goal.pose.position.x)<= dist_tolerance and abs(local_goal.pose.position.y) <=  DIST_TOLERANCE_ASIDE):
+                        # if moving forward
                         if(self.factor == 1):
+                            # if goal is in front of the robot & robot moving forward
                             if local_goal.pose.position.x>=0:
+                                #then just stop moving
                                 self.mode = 'Goal & obstacle in box'
                                 self.commands.angular.z = 0
                                 self.commands.linear.x = 0
@@ -179,15 +177,18 @@ class Move_to:
                                 self.isTurning_left = False
                                 self.isTurning_right = False
                                 print('forced goal achieved')
+                            # if goal is behind the robot & robot moving forward
                             else:
+                                #Then just turn left
                                 self.mode = 'obst & goal in box, goal behind'
-                                
-                                self.commands.angular.z = 0
-                                self.commands.linear.x = - SPEED_GO_GOAL
+                                self.commands.angular.z = TURNING_SPEED
+                                self.commands.linear.x = 0
                                 self.isTurning_left = False
                                 self.isTurning_right = False
-                                print('Goal behind, moving backward')
+                                print('turning left')
+                        # if moving backward
                         else:
+                            # if the goal is in back of the robot & robot moving backward
                             if local_goal.pose.position.x <= 0:
                                 self.mode = 'Moving Backward, Goal & obst in box'
                                 self.commands.angular.z = 0
@@ -196,8 +197,11 @@ class Move_to:
                                 self.isTurning_left = False
                                 self.isTurning_right = False
                                 print('forced goal achieved')
+                            # if the goal is not in back of the robot & robot moving backward
                             else:
+                                # Normally, robot never move backward for a goal front of him
                                 self.mode = 'Move backward, obst in box but not goal'
+                                rospy.logdebug('Goal Forward robot when robot move backward !')
                     #if the goal is not in the "protection box"
                     else:
                         #Checking if obstacles are left or right
@@ -243,12 +247,13 @@ class Move_to:
                                             self.mode = '1 Obs F, TL'
                                 #if we have more than one obstacle
                                 else:
+                                    # do like when there is one obstacle, but decision in this case can be better optimized
                                     pointsleft = []
                                     pointsright = []
                                     for obsts in point.points:
                                         pointsleft += [val for val in obsts if val.x >=0]
                                         pointsright += [val for val in obsts if val.y <0]
-
+                                    #if there is more points at left then go right
                                     if (len(pointsleft)>= len(pointsright)):
                                         if not(self.isTurning_left):
                                             self.isTurning_right = True
@@ -261,7 +266,8 @@ class Move_to:
                                             self.commands.angular.z = TURNING_SPEED
                                             self.commands.linear.x = self.factor * SPEED_AVOID_OBSTACLE
                                             self.mode = '>1 obs F, TL'
-                elif (self.left <= DIST_TOLERANCE_ASIDE+0.1 or self.right <= DIST_TOLERANCE_ASIDE+0.1):
+                # if no obstacles in the "protection box of the robot" but just left or right of him.
+                elif (self.factor * self.left <= DIST_TOLERANCE_ASIDE+0.1 or self.factor * self.right <= DIST_TOLERANCE_ASIDE+0.1):
                     point.points = []
                     for l in self.point_2D.points:
                         point.points += [val for val in l]
@@ -286,6 +292,7 @@ class Move_to:
                             self.commands.angular.z =  math.pi + (angle-self.map_point.pose.orientation.z) #* 4
                     self.commands.linear.x =  self.factor * min(distance, SPEED_GO_GOAL)
                     self.mode = 'go to goal'
+            # if robot is near the goal
             else : 
                 print('goal achieved')   
                 self.isTurning_right = False
@@ -293,10 +300,12 @@ class Move_to:
                 self.robot_move_to_goal= False    
                 self.commands.angular.z =  0.0
                 self.commands.linear.x = 0.0
+                # if the goal was the "home position (0,0)"
                 if self.returninghome:
                     self.returninghome=False
+                    self.home_returned.publish(self.goal) # Publishing topic "Arrived" to tells the other programs the robot is at home
+                else:
                     self.arrived.publish(self.goal)
-        
         self.move_command(self.commands)
         print(self.robot_move_to_goal ,self.moving_mode, self.mode , distance, angle, self.commands.angular.z)
 
@@ -305,6 +314,7 @@ class Move_to:
     def move_command(self, data):
         self.command_pub.publish(data)
         
+
 if __name__ == '__main__':
     rospy.init_node('Goal_node', anonymous=True) 
     node = Move_to()
