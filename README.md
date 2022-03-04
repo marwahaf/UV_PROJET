@@ -1,11 +1,11 @@
-## Robot d'accueil
-# General information
+# Robot d'accueil
+## General information
 
     UV : UV Projet
     Participants : Gaétan Helie et Marwa Hafsi
     Date : 04/02/2021 -> 04/03/2022
 
-# Objectif of the project : 
+## Objectif of the project : 
 
 This project aims to create a robot that : 
 	- Locates a person and goes toward her 
@@ -14,7 +14,7 @@ This project aims to create a robot that :
 	- guides the person to the wanted room
 	- goes back to its original position once the goal achieved
 	
-# Content of the repository  
+## Content of the repository  
 
 - This repository contains 3 python programs . They are located in the package "robot_accueil", in the folder "scripts". Their purposes are :
  
