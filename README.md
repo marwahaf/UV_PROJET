@@ -1,11 +1,11 @@
 ## Robot d'accueil
-#General information
+# General information
 
     UV : UV Projet
     Participants : Gaétan Helie et Marwa Hafsi
     Date : 04/02/2021 -> 04/03/2022
 
-#Objectif of the project : 
+# Objectif of the project : 
 
 This project aims to create a robot that : 
 	- Locates a person and goes toward her 
@@ -14,7 +14,7 @@ This project aims to create a robot that :
 	- guides the person to the wanted room
 	- goes back to its original position once the goal achieved
 	
-#Content of the repository  
+# Content of the repository  
 
 - This repository contains 3 python programs . They are located in the package "robot_accueil", in the folder "scripts". Their purposes are :
  
@@ -28,11 +28,15 @@ This project aims to create a robot that :
  3-The program used to analyze the data of the camera : it identifies people and calculates the distance to get to them returning a goal.
  > front_camera.py
 	 
-- There is one launch file "robot.launch" that launches : 
+- It contains one launch file "robot.launch" that launches : 
 	- all 3 python scripts 
-	- If the rviz parameter is set to true, it launches a visualization with rviz tool in a specific config rviz file "config.rviz" . The Rviz files can also be found in the package.
+	- If the rviz parameter is set to true, it launches a visualization with rviz tool in a specific config rviz file "config.rviz" . The Rviz files can also be found in the "robot_acceuil" package under the rviz file .
 	- AMCL : that localize the robot on the map using the laser scans and Monte Carlo method
 	- MapServer: that loads the map saved 
 	
 > roslaunch robot_accueil robot.launch rviz:=true
+
+- It also contains a "dnn-model" file which has all the data allowing the recognition of a person .
+
+- The repository contains a "map" file which has the saved map of the environment created using map_server map_saver
 
