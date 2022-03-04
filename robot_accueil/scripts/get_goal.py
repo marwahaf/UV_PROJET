@@ -59,6 +59,7 @@ class Move_to:
         self.returninghome = True
         self.goal.pose.position.x = 0
         self.goal.pose.position.y = 0
+        self.factor = 1
         self.robot_move_to_goal = True
 
     def callback_goal(self,data):
