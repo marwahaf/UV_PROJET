@@ -123,9 +123,9 @@ class Vision:
                             print("pub goal_person")
                             self.start = False
                             tmp_goal = PoseStamped()
-                            tmp_goal.header.frame_id = 'base_footprint'
-                            tmp_goal.pose.position.x = -x
-                            tmp_goal.pose.position.y = -y
+                            tmp_goal.header.frame_id = 'laserback_link'
+                            tmp_goal.pose.position.x = x
+                            tmp_goal.pose.position.y = y
                             self.goal_person.publish(tmp_goal)
                     else:
                         self.countFrames +=1

@@ -124,6 +124,8 @@ class Move_to:
         print(local_goal.pose.position)
         distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
         angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)         
+        if self.factor == -1:
+            angle -= math.pi
         self.mode= ' nothing'
 
         if self.robot_move_to_goal :
@@ -267,7 +269,7 @@ class Move_to:
                     if self.factor == 1:
                         self.commands.angular.z =  (angle-self.map_point.pose.orientation.z) #* 4
                     else:
-                        self.commands.angular.z =  math.pi + (angle-self.map_point.pose.orientation.z) #* 4
+                        self.commands.angular.z =  (angle-self.map_point.pose.orientation.z) #* 4
                     self.commands.linear.x =  self.factor * min(distance, SPEED_GO_GOAL)
                     self.mode = 'go to goal'
             else : 
