@@ -8,11 +8,11 @@ from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import PointCloud
 
 PUBLISHING_RATE = 0.1           # The rate at which we publish navigation commands
-SPEED_GO_GOAL = 0.5             # The linear speed of the robot when he goes to goal 
+SPEED_GO_GOAL = 0.3             # The linear speed of the robot when he goes to goal 
 SPEED_AVOID_OBSTACLE = 0      # The linear speed of the robot when an obstacle is detected
-TURNING_SPEED = 1               # The angular speed when the robot turns when obstacle detected
-DIST_TOLERANCE_FORWARD = 0.5    # The distance tolerance forward the robot to be considered as an obstacle
-DIST_TOLERANCE_ASIDE = 0.3      # The distance tolerance just left and right the robot to be considered as an obstacle
+TURNING_SPEED = 1.3               # The angular speed when the robot turns when obstacle detected
+DIST_TOLERANCE_FORWARD = 0.2    # The distance tolerance forward the robot to be considered as an obstacle
+DIST_TOLERANCE_ASIDE = 0.2      # The distance tolerance just left and right the robot to be considered as an obstacle
 DIST_LASER = 1                  # The laser range potential obstacles detection
 GOAL_RADIUS = 0.1
 
@@ -248,7 +248,7 @@ class Move_to:
                                             self.commands.angular.z = TURNING_SPEED
                                             self.commands.linear.x = self.factor * SPEED_AVOID_OBSTACLE
                                             self.mode = '>1 obs F, TL'
-                elif (self.left <= DIST_TOLERANCE_ASIDE+0.2 or self.right <= DIST_TOLERANCE_ASIDE+0.2):
+                elif (self.left <= DIST_TOLERANCE_ASIDE+0.1 or self.right <= DIST_TOLERANCE_ASIDE+0.1):
                     point.points = []
                     for l in self.point_2D.points:
                         point.points += [val for val in l]

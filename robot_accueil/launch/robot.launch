@@ -38,7 +38,7 @@
     args="0.2 0.0 0.1 0.0 0.0 0.0 /base_link /camera_link 80" />
     
 
-    <!-- <node pkg="robot_accueil" type="get_goal.py" name="get_goal" output="screen" > -->
+    <node pkg="robot_accueil" type="get_goal.py" name="get_goal" output="screen" />
 
     
     <arg name="laser" default="front_scan" />
