@@ -125,6 +125,16 @@ Visualization Manager:
           Value: true
         base_link:
           Value: false
+        camera_aligned_depth_to_color_frame:
+          Value: true
+        camera_color_frame:
+          Value: true
+        camera_color_optical_frame:
+          Value: true
+        camera_depth_frame:
+          Value: true
+        camera_depth_optical_frame:
+          Value: true
         camera_link:
           Value: false
         laserback_link:
@@ -147,7 +157,14 @@ Visualization Manager:
             base_footprint:
               base_link:
                 camera_link:
-                  {}
+                  camera_aligned_depth_to_color_frame:
+                    camera_color_optical_frame:
+                      {}
+                  camera_color_frame:
+                    {}
+                  camera_depth_frame:
+                    camera_depth_optical_frame:
+                      {}
                 laserback_link:
                   {}
                 laserfront_link:
@@ -190,6 +207,23 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /particlecloud
+      Unreliable: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -218,7 +252,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 8.898908615112305
+      Distance: 5.504673004150391
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -226,17 +260,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.09996480494737625
-        Y: 0.015857188031077385
-        Z: 0.35380011796951294
+        X: 6.455540180206299
+        Y: -3.7236266136169434
+        Z: 4.595035552978516
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.199796438217163
       Target Frame: <Fixed Frame>
-      Yaw: 3.1517553329467773
+      Yaw: 3.0867526531219482
     Saved: ~
 Window Geometry:
   Displays:
@@ -254,5 +288,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1120
-  X: 246
-  Y: 23
+  X: 475
+  Y: 152

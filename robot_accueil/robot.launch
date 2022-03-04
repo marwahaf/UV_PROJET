@@ -1,6 +1,42 @@
 <launch>
     <!-- <include file="$(find larm)/launch/challenge-1.launch"/> -->
-    <include file="$(find tbot_bringup)/launch/start.launch"/>
+    <!-- Kobuki base -->
+    <arg name="urdf_file" default="$(find xacro)/xacro '$(find tbot_description)/urdf/tbot.urdf.xacro'" />
+    <param name="robot_description" command="$(arg urdf_file)" />
+    <include file="$(find kobuki_node)/launch/minimal.launch"/>
+    <node pkg="tf" type="static_transform_publisher" name="base_link_in_base_footprint"
+        args="0.0 0.0 0.1 0.0 0.0 0.0 /base_footprint /base_link 80" />
+
+    <!-- Laser Front -->
+    <node name="robot_scan" pkg="urg_node" type="urg_node" >
+        <param name="serial_port" value="/dev/ttyACM0"/>
+        <param name="frame_id" value="laserfront_link"/>
+        <param name="angle_min" value="-2.0"/>
+        <param name="angle_max" value="2.0"/>
+        <remap from="scan" to="front_scan"/>
+    </node>
+    <node pkg="tf" type="static_transform_publisher" name="laserfront_in_base_link"
+        args="0.2 0.0 0.05 0.0 0.0 0.0 /base_link /laserfront_link 80" />
+
+    <!-- Laser Back -->
+    <node name="robot_scan_back" pkg="urg_node" type="urg_node" >
+        <param name="serial_port" value="/dev/ttyACM1"/>
+        <param name="frame_id" value="laserback_link"/>
+        <param name="angle_min" value="-2.0"/>
+        <param name="angle_max" value="2.0"/>
+        <remap from="scan" to="back_scan"/>
+    </node>
+
+    <node pkg="tf" type="static_transform_publisher" name="laserback_in_base_link"
+        args="-0.2 0.0 0.05 3.14 0.0 0.0 /base_link /laserback_link 80" />
+
+
+<!-- Realsense -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch">
+    <arg name="align_depth" value="true" />
+  </include>
+  <node pkg="tf" type="static_transform_publisher" name="camera_in_base_link"
+    args="0.2 0.0 0.1 0.0 0.0 0.0 /base_link /camera_link 80" />
     
     <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
     <!--
@@ -12,9 +48,10 @@
         <param name="maxUrange" value="4.0"/>
     </node> -->
 
-    <!-- <node pkg="robot_accueil" type="get_to_goal copy.py" name="get_goal" output="screen" >
-        <remap from="/cmd_vel_mux/input/navi" to="/mobile_base/commands/velocity"/>
-    </node> -->
+    <!-- <node pkg="robot_accueil" type="get_goal.py" name="get_goal" output="screen" > -->
+        <!-- <remap from="/cmd_vel_mux/input/navi" to="/mobile_base/commands/velocity"/> -->
+    <!-- </node> -->
+    
     
     <!-- 
     <arg name="map_file" default="$(find robot_accueil)/map/dia.yaml"/>
@@ -36,7 +73,7 @@
         <arg name="initial_pose_a" value="$(arg initial_pose_a)" />
     </include> -->
     
-    <arg name="laser" default="scan" />
+    <arg name="laser" default="front_scan" />
     <arg name="map_file" default="$(find robot_accueil)/map/map_etage.yaml"/>
     
     <!-- Localization -->
@@ -45,16 +82,17 @@
     <arg name="robot_init_phi" default="0.0" />
 
      <!-- MAP SERVER -->
-    <node name="map_server" pkg="map_server" type="map_server"  args="$(find robot_accueil)/map/map_etage.yaml" respawn="true" >
+    <node name="map_server" pkg="map_server" type="map_server"  args="$(find robot_accueil)/map/map.yaml" respawn="true" >
         <!-- <remap from="map" to="$(arg map_etage)"/> -->
     </node>
 
      <!-- AMCL -->
      <node pkg="amcl" type="amcl" name="amcl" >
         <!-- <remap from="scan" to="$(arg laser)/scan" /> -->
-        <remap from="map" to="map_file" />
-        <remap from="scan" to="scan"/>
+        <!-- <remap from="map" to="map_file" /> -->
+        <remap from="scan" to="front_scan"/>
         <param name="odom_frame_id" value="odom"/>
+        <param name="use_map_topic" value="true"/>
         <param name="base_frame_id" value="base_link"/>
         <param name="global_frame_id" value="map"/>
         <param name="tf_broadcast" value="true" />
