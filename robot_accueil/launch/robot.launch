@@ -1,5 +1,4 @@
 <launch>
-    <!-- <include file="$(find larm)/launch/challenge-1.launch"/> -->
     <!-- Kobuki base -->
     <arg name="urdf_file" default="$(find xacro)/xacro '$(find tbot_description)/urdf/tbot.urdf.xacro'" />
     <param name="robot_description" command="$(arg urdf_file)" />
@@ -38,40 +37,9 @@
   <node pkg="tf" type="static_transform_publisher" name="camera_in_base_link"
     args="0.2 0.0 0.1 0.0 0.0 0.0 /base_link /camera_link 80" />
     
-    <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
-    <!--
-    <include file="$(find tbot_bringup)/launch/minimal.launch"/>
-    <arg name="world_file" value="$(find stage_ros)/world/willow-erratic.world" />
-    -->
-
-    <!-- <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" args="scan">
-        <param name="maxUrange" value="4.0"/>
-    </node> -->
 
     <!-- <node pkg="robot_accueil" type="get_goal.py" name="get_goal" output="screen" > -->
-        <!-- <remap from="/cmd_vel_mux/input/navi" to="/mobile_base/commands/velocity"/> -->
-    <!-- </node> -->
-    
-    
-    <!-- 
-    <arg name="map_file" default="$(find robot_accueil)/map/dia.yaml"/>
-    <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)" >
-        <remap from="scan" to="$(arg scan_topic)"/>
-        <param name="map_update_interval" value="5.0"/>
-        <param name="maxUrange" value="4.0"/>
-    </node> -->
 
-    <!-- Localization -->
-    <!-- <arg name="initial_pose_x" default="0.0" />
-    <arg name="initial_pose_y" default="0.0" />
-    <arg name="initial_pose_a" default="0.0" />
-     -->
-
-    <!-- <include file="$(find grp-poire)/launch/amcl.launch.xml">
-        <arg name="initial_pose_x" value="$(arg initial_pose_x)" />
-        <arg name="initial_pose_y" value="$(arg initial_pose_y)" />
-        <arg name="initial_pose_a" value="$(arg initial_pose_a)" />
-    </include> -->
     
     <arg name="laser" default="front_scan" />
     <arg name="map_file" default="$(find robot_accueil)/map/map_etage.yaml"/>
@@ -83,13 +51,10 @@
 
      <!-- MAP SERVER -->
     <node name="map_server" pkg="map_server" type="map_server"  args="$(find robot_accueil)/map/map.yaml" respawn="true" >
-        <!-- <remap from="map" to="$(arg map_etage)"/> -->
     </node>
 
      <!-- AMCL -->
      <node pkg="amcl" type="amcl" name="amcl" >
-        <!-- <remap from="scan" to="$(arg laser)/scan" /> -->
-        <!-- <remap from="map" to="map_file" /> -->
         <remap from="scan" to="front_scan"/>
         <param name="odom_frame_id" value="odom"/>
         <param name="use_map_topic" value="true"/>
@@ -99,12 +64,11 @@
         <param name="initial_pose_x" value="$(arg robot_init_x)"/>
         <param name="initial_pose_y" value="$(arg robot_init_y)"/>
         <param name="initial_pose_a" value="$(arg robot_init_phi)"/>
-        <!-- <rosparam command="load" file="$(env ROBOT_BRINGUP_PATH)/parameters/localization/amcl.yaml" /> -->
      </node>
 
     <param name="rviz" value="false" unless="$(arg rviz)" /> <!-- This param won't be set when "unless" condition is met -->
     <group if="$(arg rviz)">
             <!-- stuff that will only be evaluated if foo is true -->
-            <node pkg="rviz" type="rviz" name="rviz" args="-d $(find robot_accueil)/config.rviz" />
+            <node pkg="rviz" type="rviz" name="rviz" args="-d $(find robot_accueil)/rviz/config.rviz" />
     </group>
 </launch>
