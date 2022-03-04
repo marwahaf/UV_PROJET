@@ -8,7 +8,7 @@ from xml.etree.ElementInclude import include
 import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import PointStamped
-from consts import *
+
 
 class MyNode:
 
