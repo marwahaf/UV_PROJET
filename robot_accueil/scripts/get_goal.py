@@ -12,9 +12,10 @@ SPEED_GO_GOAL = 0.3             # The linear speed of the robot when he goes to 
 SPEED_AVOID_OBSTACLE = 0      # The linear speed of the robot when an obstacle is detected
 TURNING_SPEED = 1.3               # The angular speed when the robot turns when obstacle detected
 DIST_TOLERANCE_FORWARD = 0.2    # The distance tolerance forward the robot to be considered as an obstacle
+DIST_TOLERANCE_BACKWARD = 0.2  
 DIST_TOLERANCE_ASIDE = 0.2      # The distance tolerance just left and right the robot to be considered as an obstacle
 DIST_LASER = 1                  # The laser range potential obstacles detection
-GOAL_RADIUS = 0.1
+GOAL_RADIUS = 0.2
 
 thr1 = 0.6  # Laser scan range threshold
 thr2 = 0.6 # Turning threshold 
@@ -157,7 +158,7 @@ class Move_to:
                     if self.factor == 1:
                         dist_tolerance = DIST_TOLERANCE_FORWARD
                     else:
-                        dist_tolerance = DIST_TOLERANCE_FORWARD
+                        dist_tolerance = DIST_TOLERANCE_BACKWARD
                     obj = [val for val in l if (val.x<dist_tolerance and abs(val.y)<DIST_TOLERANCE_ASIDE)]
                     point.points+=obj
                     if(obj != []):

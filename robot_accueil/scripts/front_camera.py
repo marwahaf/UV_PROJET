@@ -208,7 +208,7 @@ class Analyser:
                     lstProba.append(vLine[iCLASS_CONFIDENCE])
                     lstNames.append(lstszClassName[iClass])
                     #Si probabilité réseau > à seuil
-                    if(vLine[iCLASS_CONFIDENCE]>= 0.95):
+                    if(vLine[iCLASS_CONFIDENCE]>= 0.85):
                         x1 = round(vLine[iX_TOPLEFT] * iImgWidth   )
                         y1 = round(vLine[iY_TOPLEFT] * iImgHeight  )
                         x2 = round(vLine[iX_LOWRIGHT] * iImgWidth  )
