@@ -7,15 +7,17 @@ from typing_extensions import Self
 from xml.etree.ElementInclude import include
 import rospy
 from std_msgs.msg import String
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, PoseStamped
 
 
 class MyNode:
 
     def __init__(self, master):
     #Creation of the Ros Subscribers and publishers for the good topics
-        self.sub = rospy.Subscriber("people", PointStamped, callback=self.people)
-        self.pub = rospy.Publisher("goal",String,queue_size=1)
+        self.sub = rospy.Subscriber("person", PointStamped, callback=self.people)
+        self.arrived = rospy.Subscriber("/goal/arrived", PointStamped, callback=self.page2)
+        self.homed = rospy.Subscriber("/goal/home_returned", PointStamped, callback=self.welcomePage)
+        self.pub = rospy.Publisher("goal",PoseStamped,queue_size=1)
 
     #getting the frame of the GUI
         self.root = master
@@ -39,19 +41,28 @@ class MyNode:
         #Define button styles
         self.quitButton = Button(self.rightFrame,text="dbg : quit",font = self.buttonFont,command = self.root.destroy)
         self.quitButton.pack(side =BOTTOM, pady=5,padx=5)
-        self.stopButton = Button(self.leftFrame, text = "Leave Robot",font=self.buttonFont, command= lambda: print("Je rentre, faut juste le coder."))
+        self.stopButton = Button(self.leftFrame, text = "Leave Robot",font=self.buttonFont, command= lambda:self.sendGoal(0,0))
         self.stopButton.pack(side=BOTTOM,pady=5,padx=5)
         self.welcomePage()
         
-    
+    def sendGoal(self, a,b):
+        tmp_goal = PoseStamped()
+        tmp_goal.header.frame_id = 'map'
+        tmp_goal.pose.position.x = a
+        tmp_goal.pose.position.y = b
+        print(tmp_goal)
+        self.pub.publish(tmp_goal)
+
     def welcomePage(self):
     #Sets the first page of the GUI that the user see when entering.
         for w in self.master.winfo_children():
             w.destroy()
         self.label = tk.Label(self.master, text="Where to go ? ",font=('Times',30),bg = 'white')
         self.label.pack(anchor='center',pady=10)
-        self.button = Button(self.master, text="Buttons will be here", font=self.buttonFont, command= self.page2)
+        self.button = Button(self.master, text="Goal 1", font=self.buttonFont, command= lambda:self.sendGoal(6, 0))
         self.button.pack()
+        self.button2 = Button(self.master, text="Goal 2", font=self.buttonFont, command= lambda:self.sendGoal(7,2))
+        self.button2.pack()
 
     def people(self,point):
         #When a "/people" topic is received, then put the "starting" gui
@@ -62,7 +73,9 @@ class MyNode:
             w.destroy()
         self.label = tk.Label(self.master, text="C'est la page 2 ",font=('Times',30),bg = 'white')
         self.label.pack(anchor='center',pady=10)
-        self.room2 = Button(self.master,text="page2", font= self.buttonFont, command = self.welcomePage)
+        self.room2 = Button(self.master,text="Return Home", font= self.buttonFont, command = lambda:self.sendGoal(0,0))
+        self.room2.pack()
+        self.room2 = Button(self.master,text="New goal", font= self.buttonFont, command = self.welcomePage)
         self.room2.pack()
         
 

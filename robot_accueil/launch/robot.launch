@@ -40,7 +40,8 @@
 
     <node pkg="robot_accueil" type="get_goal.py" name="get_goal" output="screen" />
     <node pkg="robot_accueil" type="front_camera.py" name="vision" output="screen" />
-    
+    <node pkg="robot_accueil" type="gui.py" name="gui" output="screen" />
+
     <arg name="laser" default="front_scan" />
     <arg name="map_file" default="$(find robot_accueil)/map/map_etage.yaml"/>
     
