@@ -36,10 +36,11 @@ This project aims to create a robot that :
 
 "robot_scripts.launch" file launches: 
 	- all 3 python scripts
-WRNING : some bugs may appear if robot_scripts.launch is launched before robot.launch !
+WARNING : some bugs may appear if robot_scripts.launch is launched before robot.launch !
 Make sure to launch robot.launch before robot_scripts.launch. 
 
 > roslaunch robot_accueil robot.launch rviz:=true
+
 > roslaunch robot_accueil robot_scripts.launch
 
 - It also contains a "dnn-model" file which has all the data allowing the recognition of a person .
