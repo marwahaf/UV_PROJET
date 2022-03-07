@@ -28,15 +28,27 @@ This project aims to create a robot that :
  3-The program used to analyze the data of the camera : it identifies people and calculates the distance to get to them returning a goal.
  > front_camera.py
 	 
-- It contains one launch file "robot.launch" that launches : 
-	- all 3 python scripts 
+- It contains two launch files "robot.launch" and robot_scripts.launch.
+"robot.launch" file launches : 
 	- If the rviz parameter is set to true, it launches a visualization with rviz tool in a specific config rviz file "config.rviz" . The Rviz files can also be found in the "robot_acceuil" package under the rviz file .
 	- AMCL : that localize the robot on the map using the laser scans and Monte Carlo method
 	- MapServer: that loads the map saved 
-	
+
+"robot_scripts.launch" file launches: 
+	- all 3 python scripts
+WRNING : some bugs may appear if robot_scripts.launch is launched before robot.launch !
+Make sure to launch robot.launch before robot_scripts.launch. 
+
 > roslaunch robot_accueil robot.launch rviz:=true
+> roslaunch robot_accueil robot_scripts.launch
 
 - It also contains a "dnn-model" file which has all the data allowing the recognition of a person .
 
 - The repository contains a "map" file which has the saved map of the environment created using map_server map_saver
+
+## Amelioration perspectives : 
+
+- The people detection can be upgraded
+- The robot moving decision can be optimized
+- In the script "front_camera.py" we can get the size of the object detected and then send it with the marker so we have aproximately the size of the object.
 
