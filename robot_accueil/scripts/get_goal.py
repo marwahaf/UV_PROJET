@@ -24,75 +24,74 @@ thr2 = 0.6 # Turning threshold
 
 class Move_to:
     def __init__(self):
-        self.commands = Twist()
-        self.tfListener = tf.TransformListener()
-        self.goal= PoseStamped() #position of goal
-        self.pose_robot = PoseStamped() #position of robot
-        self.map_point = PoseStamped() #position of robot in basefootprint
-        self.robot_move_to_goal =  False 
-        self.returninghome = False
-        self.point_2D = PointCloud() # PointCloud for obstacles
-        self.isTurning_right = False # Flag to detect that a movement is being made
-        self.isTurning_left = False
-        self.moving_mode = 'no move'
+
+        #Attributs
+        self.commands = Twist()     #Twists commands to send
+        self.tfListener = tf.TransformListener()    #Transformer between frames
+        self.goal= PoseStamped() #position of goal in the map
+        self.pose_robot = PoseStamped()     #position of robot in the map
+        self.map_point = PoseStamped()      #position of robot in basefootprint
+        self.robot_move_to_goal =  False    #allows robot moving to goal
+        self.returninghome = False      # bool to know if robot is returning home or not
+        self.point_2D = PointCloud()    # PointCloud for obstacles detected
+        self.isTurning_right = False    # Flag to detect that a rotation at right is being made
+        self.isTurning_left = False     # flag to detect that a rotation at left is being made
+        self.moving_mode = 'no move'    # for debug : knowing if robot is going to a goal or a person
         self.factor = 1     #Factor for linear velocity (Going front or going back)
 
-        self.goal.header.frame_id = '/map'
-        self.laser = rospy.Subscriber('front_scan', LaserScan, self.callback_laser)
-        self.goal_listener = rospy.Subscriber(
-            '/move_base_simple/goal' ,
-            PoseStamped, self.callback_goal )
-        self.person_listener = rospy.Subscriber(
-            '/goal/person',
-            PoseStamped,
-            self.callback_person
-        )
-        rospy.Subscriber("/goal/returnhome", PoseStamped, self.returnhome)
-        rospy.Subscriber("odom", Odometry , self.robot_position)
-        self.command_pub = rospy.Publisher(
-            '/mobile_base/commands/velocity',
-            Twist, queue_size=10)
-            
-        self.arrived = rospy.Publisher('/goal/arrived', PoseStamped, queue_size=1)
-        self.home_returned = rospy.Publisher('/goal/home_returned', PoseStamped,queue_size=1)
-        self.point_publish = rospy.Publisher('/pointcloud', PointCloud , queue_size = 10)
+        self.goal.header.frame_id = '/map'  #setting the frame id of the goal 
 
+        #Subscribers
+        self.laser = rospy.Subscriber('front_scan', LaserScan, self.callback_laser)     # getting the laser detections
+        self.goal_listener = rospy.Subscriber('/move_base_simple/goal',PoseStamped, self.callback_goal )    # callback when a goal is received
+        self.person_listener = rospy.Subscriber('/goal/person',PoseStamped,self.callback_person)    # callback when a person is detected
+        rospy.Subscriber("/goal/returnhome", PoseStamped, self.returnhome)      # when robot must return home, sets a new goal in "0,0"
+        rospy.Subscriber("odom", Odometry , self.robot_position)        # callback the odometry 
+        
+        #Publishers
+        self.command_pub = rospy.Publisher('/mobile_base/commands/velocity',Twist, queue_size=10)   # velocity publisher
+        self.arrived = rospy.Publisher('/goal/arrived', PoseStamped, queue_size=1)      # Publisher when robot is arrived at goal
+        self.home_returned = rospy.Publisher('/goal/home_returned', PoseStamped,queue_size=1)   # Publisher when robot is arrived at home
+        self.point_publish = rospy.Publisher('/pointcloud', PointCloud , queue_size = 10)   # Publisher of a PointCloud to visualize obstacle detection 
+
+    # When robot has to return home
     def returnhome(self,data):
-        self.returninghome = True
+        self.returninghome = True   
         self.goal.pose.position.x = 0
         self.goal.pose.position.y = 0
-        self.factor = 1
+        self.factor = 1     # moving forward
         self.robot_move_to_goal = True
 
+    #when a goal is received
     def callback_goal(self,data):
-        self.laser.unregister()
-        self.laser = rospy.Subscriber('front_scan', LaserScan, self.callback_laser)
+        self.laser.unregister() #unregister in case back laser is subscribed
+        self.laser = rospy.Subscriber('front_scan', LaserScan, self.callback_laser) #read the laser front
         self.robot_move_to_goal=True
         self.moving_mode = 'To goal'
-        self.factor = 1
+        self.factor = 1     # moving forward
         data.header.stamp = rospy.Time(0)
-        self.goal = self.tfListener.transformPose('/map', data )
+        self.goal = self.tfListener.transformPose('/map', data )    #sets the goal in the map
 
+    #when a person is detected for the first time
     def callback_person(self,data):
-        self.laser.unregister()
-        self.laser = rospy.Subscriber('back_scan', LaserScan, self.callback_laser)
+        self.laser.unregister() #unregister in case we are reading front scan
+        self.laser = rospy.Subscriber('back_scan', LaserScan, self.callback_laser)  #read the laser back
         self.robot_move_to_goal = True
         self.moving_mode = 'To people'
-        self.factor = -1
+        self.factor = -1    # moving backward
         data.header.stamp = rospy.Time(0)
         print("Person detected !")
         print(data)
         self.goal = self.tfListener.transformPose('/map',data)
         print(self.goal)
 
+    #processing object detection
     def callback_laser(self,data): 
-        print(data.header.frame_id)
-        self.isTurning = False
-        self.point_2D.points.clear()
+        # print(data.header.frame_id)
+        self.point_2D.points.clear()    #clear the previous points
         obstacles = []      # Getting the obstacles detected by the laser
         contiguous_obstacles = []   # Getting all points that are continuous (without "air between")
-        angle = data.angle_min
-        self.angle_maxi =  data.angle_max
+        angle = data.angle_min  #sets the angle as the min angle
         # Compute the laser data to get coordinates relative to the robot
         for aDistance in data.ranges:
 
@@ -112,9 +111,7 @@ class Move_to:
                     obstacles.append(contiguous_obstacles)
                 contiguous_obstacles = []
             angle += data.angle_increment
-
-        self.point_2D.points = obstacles
-
+        self.point_2D.points = obstacles    #store the list of obstacles
         # Front value in all the laser rays
         self.front = data.ranges[int(len(data.ranges)/2)]
         
@@ -123,19 +120,21 @@ class Move_to:
         
         # Right value in all the laser rays
         self.right = data.ranges[int(len(data.ranges)/2) - int((math.pi/2)/data.angle_increment)]
-        self.move_robot()
+        self.move_robot() #moves the robot after scan detection
     
+    #gets the robot position in map frame
     def robot_position(self ,data):
         self.pose_robot.pose = data.pose.pose
         self.pose_robot.header.frame_id = data.header.frame_id
         
     
+    # Process the decision making and then send velocity
     def move_robot(self):
-        self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot )
-        local_goal = self.tfListener.transformPose('/base_footprint', self.goal)   
-        distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)
-        angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)         
-        self.mode= ' nothing'
+        self.map_point = self.tfListener.transformPose('/base_footprint', self.pose_robot ) #get robot pose in base_footprint (normally, 0,0)
+        local_goal = self.tfListener.transformPose('/base_footprint', self.goal)    #get the goal in base_footprint
+        distance =  math.sqrt((local_goal.pose.position.x -self.map_point.pose.position.x)**2+(local_goal.pose.position.y-self.map_point.pose.position.y)**2)   #calculate the euclidian distance to the goal
+        angle =  math.atan2(local_goal.pose.position.y - self.map_point.pose.position.y , local_goal.pose.position.x - self.map_point.pose.position.x)      #calculate the angle between the front of the robot and the goal using atan2. so angle depends if goal is at right or at left of the robot (depends not if obstacle is front or back)
+        self.mode= ' nothing'   #for debug : prints the case and then the decision of moving made
         if self.robot_move_to_goal :
             # if robot is far the goal
             if distance > GOAL_RADIUS :
@@ -245,7 +244,7 @@ class Move_to:
                                     else:
                                         #then go left
                                         if not(self.isTurning_right):
-                                            self.isTurning_left
+                                            self.isTurning_left = True
                                             self.commands.angular.z = TURNING_SPEED
                                             self.commands.linear.x = self.factor * SPEED_AVOID_OBSTACLE
                                             self.mode = '1 Obs F, TL'
@@ -299,6 +298,7 @@ class Move_to:
             # if robot is near the goal
             else : 
                 print('goal achieved')   
+                self.moving_mode='no move'
                 self.isTurning_right = False
                 self.isTurning_left = False
                 self.robot_move_to_goal= False    
@@ -310,11 +310,10 @@ class Move_to:
                     self.home_returned.publish(self.goal) # Publishing topic "Arrived" to tells the other programs the robot is at home
                 else:
                     self.arrived.publish(self.goal)
-        self.move_command(self.commands)
-        print(self.robot_move_to_goal ,self.moving_mode, self.mode , distance, angle, self.commands.angular.z)
+        self.move_command(self.commands)    #publish the velocity commands
+        print(self.robot_move_to_goal ,self.moving_mode, self.mode , distance, angle, self.commands.angular.z)  #prints debug infos
 
-
-
+    #publish the commands we want to publish
     def move_command(self, data):
         self.command_pub.publish(data)
         
