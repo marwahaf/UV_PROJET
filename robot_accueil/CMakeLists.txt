@@ -160,9 +160,9 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-   scripts/visu_ihm.py
-   scripts/get_to_goal.py
+   scripts/front_camera.py
    scripts/get_goal.py
+   scripts/gui.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
